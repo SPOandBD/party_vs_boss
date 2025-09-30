@@ -66,6 +66,10 @@ class Human:
 
 
 class Character(Human, ABC):
+    # флаги статусов
+    _silenced: bool = False
+
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._effects = []     # type: list
@@ -92,7 +96,7 @@ class Character(Human, ABC):
         for k, v in list(self._cooldowns.items()):
             self._cooldowns[k] = max(0, v - 1)
     
-        # --- helpers for skills ---
+    # --- helpers for skills (если уже добавлял, пропусти) ---
     def _start_cooldown(self, skill_id: str, turns: int):
         self._cooldowns[skill_id] = int(turns)
 
@@ -101,3 +105,65 @@ class Character(Human, ABC):
             raise ValueError(f"Not enough MP for {self.name}: need {amount}, have {self.mp}")
         self.mp = self.mp - amount
 
+    # --- combat helpers ---
+    def receive_damage(self, amount: int) -> int:
+        """Принять урон с учётом щитов/эффектов. Возвращает фактический урон по HP."""
+        if amount <= 0 or not self.is_alive:
+            return 0
+        # дать эффектам шанс поглотить/изменить урон (например, Shield)
+        remaining = int(amount)
+        for eff in list(self._effects):
+            on_dmg = getattr(eff, "on_damage", None)
+            if callable(on_dmg):
+                remaining = int(on_dmg(self, remaining))
+                if remaining <= 0:
+                    remaining = 0
+                    break
+        before = self.hp
+        self.hp = self.hp - remaining
+        return before - self.hp
+
+    def heal(self, amount: int) -> int:
+        """Лечение с клампом по max_hp. Возвращает восстановленное значение."""
+        if amount <= 0 or not self.is_alive:
+            return 0
+        before = self.hp
+        self.hp = self.hp + int(amount)
+        return self.hp - before
+
+    def is_silenced(self) -> bool:
+        return bool(getattr(self, "_silenced", False))
+
+    # эффекты
+    def add_effect(self, effect: Any):
+        self._effects.append(effect)
+        on_apply = getattr(effect, "on_apply", None)
+        if callable(on_apply):
+            on_apply(self)
+
+    def tick_effects(self, phase: str):
+        """phase: 'start' или 'end' — вызывает хуки эффектов и снимает истёкшие."""
+        to_remove = []
+        for eff in list(self._effects):
+            if phase == "start" and hasattr(eff, "on_turn_start"):
+                eff.on_turn_start(self)
+            if phase == "end" and hasattr(eff, "on_turn_end"):
+                eff.on_turn_end(self)
+            # у эффекта должна уменьшаться duration внутри on_turn_end или здесь:
+            if getattr(eff, "duration", None) is not None and eff.duration <= 0:
+                to_remove.append(eff)
+        for eff in to_remove:
+            on_expire = getattr(eff, "on_expire", None)
+            if callable(on_expire):
+                on_expire(self)
+            try:
+                self._effects.remove(eff)
+            except ValueError:
+                pass
+
+    def can_use(self, skill_id: str) -> bool:
+        return self._cooldowns.get(skill_id, 0) == 0 and not self.is_silenced()
+
+    def reduce_cooldowns(self):
+        for k, v in list(self._cooldowns.items()):
+            self._cooldowns[k] = max(0, v - 1)
