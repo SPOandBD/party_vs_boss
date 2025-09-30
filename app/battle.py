@@ -15,13 +15,16 @@ class Battle(LoggerMixin):
         entities = self.party + [self.boss]
         for r in range(1, max_rounds + 1):
             with self.log_round(r):
+                # актуализируем фазу босса
+                if getattr(self.boss, "update_phase", None):
+                    self.boss.update_phase()
+
                 # эффекты старт-фазы
                 for e in self._living(entities):
                     e.tick_effects("start")
 
-                # очередь ходов (пока просто по списку)
+                # ходы (пока заглушки)
                 for e in TurnOrder(self._living(entities)):
-                    # здесь позже: выбор действий/целей
                     print(f"- {e} acts (stub)")
                     e.reduce_cooldowns()
 
