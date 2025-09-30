@@ -46,6 +46,22 @@ class Human:
         self.hp = hp or self.max_hp
         self.mp = mp or self.max_mp
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Human):
+            return NotImplemented
+        return (self.name, self.level) == (other.name, other.level)
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.level))
+
+    def __iter__(self):
+        # итератор по базовым характеристикам
+        yield ("hp", self.hp)
+        yield ("mp", self.mp)
+        yield ("str_", self.str_)
+        yield ("agi", self.agi)
+        yield ("int_", self.int_)
+
     @property
     def max_hp(self) -> int:
         return 50 + self.level * 10 + self.str_ * 5
