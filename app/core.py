@@ -82,19 +82,6 @@ class Character(Human, ABC):
     @abstractmethod
     def use_skill(self, target: "Character", skill_id: str) -> int:
         raise NotImplementedError
-
-    def add_effect(self, effect: Any):
-        self._effects.append(effect)
-
-    def tick_effects(self, phase: str):
-        pass
-
-    def can_use(self, skill_id: str) -> bool:
-        return self._cooldowns.get(skill_id, 0) == 0
-
-    def reduce_cooldowns(self):
-        for k, v in list(self._cooldowns.items()):
-            self._cooldowns[k] = max(0, v - 1)
     
     # --- helpers for skills (если уже добавлял, пропусти) ---
     def _start_cooldown(self, skill_id: str, turns: int):
