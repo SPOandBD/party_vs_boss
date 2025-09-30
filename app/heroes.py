@@ -10,6 +10,8 @@ class Warrior(CritMixin, Character):
         return dmg
 
     def use_skill(self, target: Character, skill_id: str) -> int:
+        if self.is_silenced():
+            raise RuntimeError("Silenced")
         if skill_id != "power_strike":
             raise ValueError("Unknown skill for Warrior")
         if not self.can_use(skill_id):
@@ -30,6 +32,8 @@ class Mage(CritMixin, Character):
         return dmg
 
     def use_skill(self, target: Character, skill_id: str) -> int:
+        if self.is_silenced():
+            raise RuntimeError("Silenced")
         if skill_id != "fireball":
             raise ValueError("Unknown skill for Mage")
         if not self.can_use(skill_id):
@@ -50,6 +54,8 @@ class Healer(Character):
         return dmg
 
     def use_skill(self, target: Character, skill_id: str) -> int:
+        if self.is_silenced():
+            raise RuntimeError("Silenced")
         if skill_id != "heal":
             raise ValueError("Unknown skill for Healer")
         if not self.can_use(skill_id):
