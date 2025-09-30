@@ -91,3 +91,13 @@ class Character(Human, ABC):
     def reduce_cooldowns(self):
         for k, v in list(self._cooldowns.items()):
             self._cooldowns[k] = max(0, v - 1)
+    
+        # --- helpers for skills ---
+    def _start_cooldown(self, skill_id: str, turns: int):
+        self._cooldowns[skill_id] = int(turns)
+
+    def _spend_mp(self, amount: int):
+        if self.mp < amount:
+            raise ValueError(f"Not enough MP for {self.name}: need {amount}, have {self.mp}")
+        self.mp = self.mp - amount
+
